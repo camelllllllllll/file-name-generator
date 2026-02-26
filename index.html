@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ファイル名ジェネレーター</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    header { margin-bottom: 24px; }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #aaa;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.wide { grid-column: 1 / -1; }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #999;
+    }
+
+    select, input[type="text"], input[type="number"] {
+      padding: 8px 10px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #333;
+      background: white;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: #4f80ff;
+    }
+
+    /* Result area */
+    .result-card {
+      background: #1a1a2e;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .result-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #777;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .filename {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 15px;
+      color: #e2e8f0;
+      word-break: break-all;
+      line-height: 1.6;
+      min-height: 28px;
+    }
+
+    .copy-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 11px;
+      background: #4f80ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .copy-btn:hover { background: #3a6aef; }
+    .copy-btn:active { transform: scale(0.98); }
+    .copy-btn.copied { background: #22c55e; }
+
+    /* History */
+    .history-list { list-style: none; }
+
+    .history-item {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 12px;
+      color: #555;
+      padding: 9px 0;
+      border-bottom: 1px solid #f3f4f6;
+      word-break: break-all;
+      cursor: pointer;
+      transition: color 0.1s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-item:last-child { border-bottom: none; }
+    .history-item:hover { color: #4f80ff; }
+
+    .history-item .copy-icon {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: #ccc;
+    }
+
+    .history-empty {
+      font-size: 13px;
+      color: #ccc;
+      font-style: italic;
+    }
+
+    @media (max-width: 540px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <h1>ファイル名ジェネレーター</h1>
+      <p class="subtitle">命名規則に沿ったファイル名を自動生成します</p>
+    </header>
+
+    <div class="card">
+      <div class="card-title">入力フォーム</div>
+      <div class="form-grid">
+
+        <div class="field">
+          <label>前置き番号</label>
+          <input type="number" id="prefix" min="1" max="99" value="1">
+        </div>
+
+        <div class="field">
+          <label>学年</label>
+          <select id="grade">
+            <option value="3年">3年</option>
+            <option value="4年">4年</option>
+            <option value="5年" selected>5年</option>
+            <option value="6年">6年</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>クラス</label>
+          <select id="cls">
+            <option value="S">S</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="全">全（共通）</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>科目</label>
+          <select id="subject">
+            <option value="算数">算数</option>
+            <option value="数学">数学</option>
+            <option value="国語">国語</option>
+            <option value="理科">理科</option>
+            <option value="社会">社会</option>
+            <option value="英語">英語</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>前後期</label>
+          <select id="semester">
+            <option value="前期">前期</option>
+            <option value="後期">後期</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>回数</label>
+          <input type="number" id="session" min="1" max="99" value="1">
+        </div>
+
+        <div class="field wide">
+          <label>教材種別</label>
+          <select id="material">
+            <option value="宿題プリント">宿題プリント</option>
+            <option value="確認テスト_問題">確認テスト（問題）</option>
+            <option value="確認テスト_解答">確認テスト（解答）</option>
+            <option value="確認テスト_問題解答">確認テスト（問題・解答）</option>
+            <option value="体験用教材">体験用教材</option>
+            <option value="授業プリント">授業プリント</option>
+          </select>
+        </div>
+
+        <div class="field wide">
+          <label>備考（省略可）</label>
+          <input type="text" id="notes" placeholder="例：約数と倍数の利用">
+        </div>
+
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="result-label">生成されたファイル名</div>
+      <div class="filename" id="output"></div>
+      <button class="copy-btn" id="copyBtn" onclick="copyFilename()">コピー</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">最近コピーしたファイル名</div>
+      <ul class="history-list" id="historyList">
+        <li class="history-empty">まだコピーされていません</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <script>
+    const fields = ['prefix', 'grade', 'cls', 'subject', 'semester', 'session', 'material', 'notes'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', generate);
+      el.addEventListener('change', generate);
+    });
+
+    function generate() {
+      const prefix   = String(document.getElementById('prefix').value || 1).padStart(2, '0');
+      const grade    = document.getElementById('grade').value;
+      const cls      = document.getElementById('cls').value;
+      const subject  = document.getElementById('subject').value;
+      const semester = document.getElementById('semester').value;
+      const session  = String(document.getElementById('session').value || 1).padStart(2, '0');
+      const material = document.getElementById('material').value;
+      const notes    = document.getElementById('notes').value.trim();
+
+      const parts = [prefix, grade, cls, subject, semester, `第${session}回`, material];
+      if (notes) parts.push(notes);
+
+      document.getElementById('output').textContent = parts.join('_');
+    }
+
+    const history = [];
+
+    function copyFilename() {
+      const filename = document.getElementById('output').textContent;
+      if (!filename) return;
+
+      navigator.clipboard.writeText(filename).then(() => {
+        // Add to history
+        if (history[0] !== filename) {
+          history.unshift(filename);
+          if (history.length > 5) history.pop();
+          renderHistory();
+        }
+
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'コピーしました！';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'コピー';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    }
+
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      if (history.length === 0) {
+        list.innerHTML = '<li class="history-empty">まだコピーされていません</li>';
+        return;
+      }
+      list.innerHTML = '';
+      history.forEach((name, i) => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.title = 'クリックでコピー';
+
+        const span = document.createElement('span');
+        span.textContent = name;
+
+        const icon = document.createElement('span');
+        icon.className = 'copy-icon';
+        icon.textContent = 'コピー';
+
+        li.appendChild(span);
+        li.appendChild(icon);
+
+        li.addEventListener('click', () => {
+          navigator.clipboard.writeText(history[i]).then(() => {
+            icon.textContent = '✓';
+            setTimeout(() => { icon.textContent = 'コピー'; }, 1200);
+          });
+        });
+
+        list.appendChild(li);
+      });
+    }
+
+    generate();
+  </script>
+</body>
+</html>
