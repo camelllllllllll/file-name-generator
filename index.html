@@ -19,6 +19,10 @@
       margin: 0 auto;
     }
 
+    .container.wide {
+      max-width: 1000px;
+    }
+
     header { margin-bottom: 24px; }
 
     h1 {
@@ -31,6 +35,36 @@
       font-size: 13px;
       color: #999;
       margin-top: 4px;
+    }
+
+    /* Mode toggle */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: white;
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      width: fit-content;
+    }
+
+    .mode-btn {
+      padding: 8px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      background: transparent;
+      color: #999;
+      transition: all 0.15s;
+    }
+
+    .mode-btn.active {
+      background: #1a1a2e;
+      color: white;
     }
 
     .card {
@@ -87,7 +121,6 @@
       border-color: #4f80ff;
     }
 
-    /* Result area */
     .result-card {
       background: #1a1a2e;
       border-radius: 12px;
@@ -132,7 +165,6 @@
     .copy-btn:active { transform: scale(0.98); }
     .copy-btn.copied { background: #22c55e; }
 
-    /* History */
     .history-list { list-style: none; }
 
     .history-item {
@@ -165,112 +197,301 @@
       font-style: italic;
     }
 
+    /* Batch mode */
+    .batch-common-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .batch-table-wrap {
+      overflow-x: auto;
+      max-height: 480px;
+      overflow-y: auto;
+    }
+
+    .batch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 700px;
+    }
+
+    .batch-table th {
+      font-size: 11px;
+      font-weight: 700;
+      color: #aaa;
+      text-align: left;
+      padding: 0 8px 10px 0;
+      border-bottom: 1.5px solid #f0f0f0;
+      white-space: nowrap;
+    }
+
+    .batch-table td {
+      padding: 6px 8px 6px 0;
+      border-bottom: 1px solid #f5f5f5;
+      vertical-align: middle;
+    }
+
+    .batch-table td:last-child { padding-right: 0; }
+
+    .batch-table input[type="number"] {
+      width: 60px;
+    }
+
+    .batch-table select {
+      width: 100%;
+      min-width: 140px;
+    }
+
+    .batch-table input[type="text"] {
+      min-width: 120px;
+    }
+
+    .batch-filename {
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 11px;
+      color: #444;
+      word-break: break-all;
+      min-width: 180px;
+    }
+
+    .row-copy-btn {
+      padding: 4px 10px;
+      background: #f0f4ff;
+      color: #4f80ff;
+      border: 1.5px solid #d0dcff;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .row-copy-btn:hover { background: #dce8ff; }
+    .row-copy-btn.copied { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+
+    .del-btn {
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+      transition: color 0.1s;
+    }
+
+    .del-btn:hover { color: #ef4444; }
+
+    .add-row-btn {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1.5px dashed #d0d0d0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #999;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+      width: 100%;
+    }
+
+    .add-row-btn:hover {
+      border-color: #4f80ff;
+      color: #4f80ff;
+    }
+
     @media (max-width: 540px) {
       .form-grid { grid-template-columns: 1fr 1fr; }
+      .batch-common-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" id="mainContainer">
 
     <header>
       <h1>ファイル名ジェネレーター</h1>
       <p class="subtitle">命名規則に沿ったファイル名を自動生成します</p>
     </header>
 
-    <div class="card">
-      <div class="card-title">入力フォーム</div>
-      <div class="form-grid">
+    <!-- モード切り替え -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btnSingle" onclick="setMode('single')">単体生成</button>
+      <button class="mode-btn" id="btnBatch" onclick="setMode('batch')">連続生成</button>
+    </div>
 
-        <div class="field">
-          <label>前置き番号</label>
-          <input type="number" id="prefix" min="1" max="99" value="1">
+    <!-- ===== 単体生成モード ===== -->
+    <div id="singleMode">
+      <div class="card">
+        <div class="card-title">入力フォーム</div>
+        <div class="form-grid">
+
+          <div class="field">
+            <label>前置き番号</label>
+            <input type="number" id="prefix" min="1" max="99" value="1">
+          </div>
+
+          <div class="field">
+            <label>学年</label>
+            <select id="grade">
+              <option value="3年">3年</option>
+              <option value="4年">4年</option>
+              <option value="5年" selected>5年</option>
+              <option value="6年">6年</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>クラス</label>
+            <select id="cls">
+              <option value="S">S</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="Z">Z（全クラス共通）</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>科目</label>
+            <select id="subject">
+              <option value="算数">算数</option>
+              <option value="数学">数学</option>
+              <option value="国語">国語</option>
+              <option value="理科">理科</option>
+              <option value="社会">社会</option>
+              <option value="理社">理社（4年のみ）</option>
+              <option value="英語">英語</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>前後期</label>
+            <select id="semester">
+              <option value="前期">前期</option>
+              <option value="後期">後期</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>回数</label>
+            <input type="number" id="session" min="1" max="99" value="1">
+          </div>
+
+          <div class="field wide">
+            <label>教材種別</label>
+            <select id="material">
+              <option value="宿題プリント">宿題プリント</option>
+              <option value="確認テスト_問題">確認テスト（問題）</option>
+              <option value="確認テスト_解答">確認テスト（解答）</option>
+              <option value="確認テスト_問題解答">確認テスト（問題・解答）</option>
+              <option value="体験用教材">体験用教材</option>
+              <option value="授業プリント">授業プリント</option>
+              <option value="入試演習">入試演習</option>
+            </select>
+          </div>
+
+          <div class="field wide">
+            <label>備考（省略可）</label>
+            <input type="text" id="notes" placeholder="例：約数と倍数の利用">
+          </div>
+
         </div>
+      </div>
 
-        <div class="field">
-          <label>学年</label>
-          <select id="grade">
-            <option value="3年">3年</option>
-            <option value="4年">4年</option>
-            <option value="5年" selected>5年</option>
-            <option value="6年">6年</option>
-          </select>
-        </div>
+      <div class="result-card">
+        <div class="result-label">生成されたファイル名</div>
+        <div class="filename" id="output"></div>
+        <button class="copy-btn" id="copyBtn" onclick="copyFilename()">コピー</button>
+      </div>
 
-        <div class="field">
-          <label>クラス</label>
-          <select id="cls">
-            <option value="S">S</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="Z">Z（全クラス共通）</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>科目</label>
-          <select id="subject">
-            <option value="算数">算数</option>
-            <option value="数学">数学</option>
-            <option value="国語">国語</option>
-            <option value="理科">理科</option>
-            <option value="社会">社会</option>
-            <option value="理社">理社（4年のみ）</option>
-            <option value="英語">英語</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>前後期</label>
-          <select id="semester">
-            <option value="前期">前期</option>
-            <option value="後期">後期</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label>回数</label>
-          <input type="number" id="session" min="1" max="99" value="1">
-        </div>
-
-        <div class="field wide">
-          <label>教材種別</label>
-          <select id="material">
-            <option value="宿題プリント">宿題プリント</option>
-            <option value="確認テスト_問題">確認テスト（問題）</option>
-            <option value="確認テスト_解答">確認テスト（解答）</option>
-            <option value="確認テスト_問題解答">確認テスト（問題・解答）</option>
-            <option value="体験用教材">体験用教材</option>
-            <option value="授業プリント">授業プリント</option>
-            <option value="入試演習">入試演習</option>
-          </select>
-        </div>
-
-        <div class="field wide">
-          <label>備考（省略可）</label>
-          <input type="text" id="notes" placeholder="例：約数と倍数の利用">
-        </div>
-
+      <div class="card">
+        <div class="card-title">最近コピーしたファイル名</div>
+        <ul class="history-list" id="historyList">
+          <li class="history-empty">まだコピーされていません</li>
+        </ul>
       </div>
     </div>
 
-    <div class="result-card">
-      <div class="result-label">生成されたファイル名</div>
-      <div class="filename" id="output"></div>
-      <button class="copy-btn" id="copyBtn" onclick="copyFilename()">コピー</button>
-    </div>
+    <!-- ===== 連続生成モード ===== -->
+    <div id="batchMode" style="display:none">
 
-    <div class="card">
-      <div class="card-title">最近コピーしたファイル名</div>
-      <ul class="history-list" id="historyList">
-        <li class="history-empty">まだコピーされていません</li>
-      </ul>
+      <div class="card">
+        <div class="card-title">共通設定</div>
+        <div class="batch-common-grid">
+          <div class="field">
+            <label>学年</label>
+            <select id="b_grade">
+              <option value="3年">3年</option>
+              <option value="4年">4年</option>
+              <option value="5年" selected>5年</option>
+              <option value="6年">6年</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>クラス</label>
+            <select id="b_cls">
+              <option value="S">S</option>
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="C">C</option>
+              <option value="Z">Z（全クラス共通）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>科目</label>
+            <select id="b_subject">
+              <option value="算数">算数</option>
+              <option value="数学">数学</option>
+              <option value="国語">国語</option>
+              <option value="理科">理科</option>
+              <option value="社会">社会</option>
+              <option value="理社">理社（4年のみ）</option>
+              <option value="英語">英語</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>前後期</label>
+            <select id="b_semester">
+              <option value="前期">前期</option>
+              <option value="後期">後期</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ファイルリスト</div>
+        <div class="batch-table-wrap">
+          <table class="batch-table">
+            <thead>
+              <tr>
+                <th>前置き</th>
+                <th>回数</th>
+                <th>教材種別</th>
+                <th>備考</th>
+                <th>生成されたファイル名</th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="batchRows"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" onclick="addBatchRow()">＋ 行を追加</button>
+      </div>
+
     </div>
 
   </div>
 
   <script>
+    // ===== 単体生成 =====
     const fields = ['prefix', 'grade', 'cls', 'subject', 'semester', 'session', 'material', 'notes'];
     fields.forEach(id => {
       const el = document.getElementById(id);
@@ -290,7 +511,6 @@
 
       const parts = [prefix, grade, cls, subject, semester, `第${session}回`, material];
       if (notes) parts.push(notes);
-
       document.getElementById('output').textContent = parts.join('_');
     }
 
@@ -299,22 +519,16 @@
     function copyFilename() {
       const filename = document.getElementById('output').textContent;
       if (!filename) return;
-
       navigator.clipboard.writeText(filename).then(() => {
-        // Add to history
         if (history[0] !== filename) {
           history.unshift(filename);
           if (history.length > 5) history.pop();
           renderHistory();
         }
-
         const btn = document.getElementById('copyBtn');
         btn.textContent = 'コピーしました！';
         btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = 'コピー';
-          btn.classList.remove('copied');
-        }, 1500);
+        setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('copied'); }, 1500);
       });
     }
 
@@ -329,29 +543,177 @@
         const li = document.createElement('li');
         li.className = 'history-item';
         li.title = 'クリックでコピー';
-
         const span = document.createElement('span');
         span.textContent = name;
-
         const icon = document.createElement('span');
         icon.className = 'copy-icon';
         icon.textContent = 'コピー';
-
         li.appendChild(span);
         li.appendChild(icon);
-
         li.addEventListener('click', () => {
           navigator.clipboard.writeText(history[i]).then(() => {
             icon.textContent = '✓';
             setTimeout(() => { icon.textContent = 'コピー'; }, 1200);
           });
         });
-
         list.appendChild(li);
       });
     }
 
     generate();
+
+    // ===== 連続生成 =====
+    const MATERIALS = [
+      { value: '宿題プリント',        label: '宿題プリント' },
+      { value: '確認テスト_問題',      label: '確認テスト（問題）' },
+      { value: '確認テスト_解答',      label: '確認テスト（解答）' },
+      { value: '確認テスト_問題解答',  label: '確認テスト（問題・解答）' },
+      { value: '体験用教材',           label: '体験用教材' },
+      { value: '授業プリント',         label: '授業プリント' },
+      { value: '入試演習',             label: '入試演習' },
+    ];
+
+    let rowCount = 0;
+
+    function makeMaterialSelect(selectedVal) {
+      const sel = document.createElement('select');
+      MATERIALS.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.value;
+        opt.textContent = m.label;
+        if (m.value === selectedVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', updateBatch);
+      return sel;
+    }
+
+    function addBatchRow() {
+      const tbody = document.getElementById('batchRows');
+      const rows = tbody.querySelectorAll('tr');
+      const lastRow = rows[rows.length - 1];
+
+      // Auto-increment from last row
+      let nextPrefix = 1, nextSession = 1;
+      if (lastRow) {
+        const lastPrefix = parseInt(lastRow.querySelector('.r-prefix').value) || 0;
+        const lastSession = parseInt(lastRow.querySelector('.r-session').value) || 0;
+        nextPrefix = lastPrefix + 1;
+        nextSession = lastSession + 1;
+      }
+
+      rowCount++;
+      const id = rowCount;
+      const tr = document.createElement('tr');
+      tr.dataset.id = id;
+
+      // 前置き番号
+      const tdPrefix = document.createElement('td');
+      const inPrefix = document.createElement('input');
+      inPrefix.type = 'number'; inPrefix.min = 1; inPrefix.max = 99;
+      inPrefix.value = nextPrefix; inPrefix.className = 'r-prefix';
+      inPrefix.addEventListener('input', updateBatch);
+      tdPrefix.appendChild(inPrefix);
+
+      // 回数
+      const tdSession = document.createElement('td');
+      const inSession = document.createElement('input');
+      inSession.type = 'number'; inSession.min = 1; inSession.max = 99;
+      inSession.value = nextSession; inSession.className = 'r-session';
+      inSession.addEventListener('input', updateBatch);
+      tdSession.appendChild(inSession);
+
+      // 教材種別
+      const tdMat = document.createElement('td');
+      tdMat.appendChild(makeMaterialSelect('宿題プリント'));
+
+      // 備考
+      const tdNotes = document.createElement('td');
+      const inNotes = document.createElement('input');
+      inNotes.type = 'text'; inNotes.placeholder = '省略可'; inNotes.className = 'r-notes';
+      inNotes.addEventListener('input', updateBatch);
+      tdNotes.appendChild(inNotes);
+
+      // 生成されたファイル名
+      const tdOut = document.createElement('td');
+      const divOut = document.createElement('div');
+      divOut.className = 'batch-filename r-output';
+      tdOut.appendChild(divOut);
+
+      // コピーボタン
+      const tdCopy = document.createElement('td');
+      const btnCopy = document.createElement('button');
+      btnCopy.className = 'row-copy-btn'; btnCopy.textContent = 'コピー';
+      btnCopy.onclick = () => {
+        const name = divOut.textContent;
+        if (!name) return;
+        navigator.clipboard.writeText(name).then(() => {
+          btnCopy.textContent = 'コピー済み';
+          btnCopy.classList.add('copied');
+          setTimeout(() => { btnCopy.textContent = 'コピー'; btnCopy.classList.remove('copied'); }, 1500);
+        });
+      };
+      tdCopy.appendChild(btnCopy);
+
+      // 削除ボタン
+      const tdDel = document.createElement('td');
+      const btnDel = document.createElement('button');
+      btnDel.className = 'del-btn'; btnDel.textContent = '×';
+      btnDel.onclick = () => { tr.remove(); updateBatch(); };
+      tdDel.appendChild(btnDel);
+
+      tr.append(tdPrefix, tdSession, tdMat, tdNotes, tdOut, tdCopy, tdDel);
+      tbody.appendChild(tr);
+      updateBatch();
+    }
+
+    function getBatchCommon() {
+      return {
+        grade:    document.getElementById('b_grade').value,
+        cls:      document.getElementById('b_cls').value,
+        subject:  document.getElementById('b_subject').value,
+        semester: document.getElementById('b_semester').value,
+      };
+    }
+
+    function generateBatchFilename(common, row) {
+      const prefix   = String(row.querySelector('.r-prefix').value || 1).padStart(2, '0');
+      const session  = String(row.querySelector('.r-session').value || 1).padStart(2, '0');
+      const material = row.querySelector('select').value;
+      const notes    = row.querySelector('.r-notes').value.trim();
+      const parts = [prefix, common.grade, common.cls, common.subject, common.semester, `第${session}回`, material];
+      if (notes) parts.push(notes);
+      return parts.join('_');
+    }
+
+    function updateBatch() {
+      const common = getBatchCommon();
+      const rows = document.getElementById('batchRows').querySelectorAll('tr');
+      rows.forEach(row => {
+        const name = generateBatchFilename(common, row);
+        row.querySelector('.r-output').textContent = name;
+      });
+    }
+
+    // 共通設定の変更を検知
+    ['b_grade', 'b_cls', 'b_subject', 'b_semester'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updateBatch);
+    });
+
+    // ===== モード切り替え =====
+    function setMode(mode) {
+      const isBatch = mode === 'batch';
+      document.getElementById('singleMode').style.display = isBatch ? 'none' : 'block';
+      document.getElementById('batchMode').style.display  = isBatch ? 'block' : 'none';
+      document.getElementById('btnSingle').classList.toggle('active', !isBatch);
+      document.getElementById('btnBatch').classList.toggle('active', isBatch);
+      document.getElementById('mainContainer').classList.toggle('wide', isBatch);
+
+      // 初回切り替え時に1行追加
+      if (isBatch && document.getElementById('batchRows').children.length === 0) {
+        addBatchRow();
+      }
+    }
   </script>
 </body>
 </html>
